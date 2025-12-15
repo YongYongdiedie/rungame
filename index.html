@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Mobile Wireframe Runner</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<style>
+  body { margin:0; overflow:hidden; background:black; touch-action:none; }
+</style>
+</head>
+<body>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+/* ===== 기본 세팅 ===== */
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+  75, window.innerWidth / window.innerHeight, 0.1, 1000
+);
+
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000);
+document.body.appendChild(renderer.domElement);
+
+/* ===== 공통 wireframe ===== */
+const mat = new THREE.MeshBasicMaterial({
+  color: 0xffffff,
+  wireframe: true
+});
+
+/* ===== 플레이어 ===== */
+const player = new THREE.Mesh(
+  new THREE.BoxGeometry(1, 2, 1),
+  mat
+);
+player.position.set(0, 1, 0);
+scene.add(player);
+
+/* ===== 바닥 ===== */
+const ground = new THREE.Mesh(
+  new THREE.BoxGeometry(10, 0.1, 300),
+  mat
+);
+ground.position.z = -150;
+scene.add(ground);
+
+/* ===== 장애물 ===== */
+const obstacles = [];
+for (let i = 0; i < 12; i++) {
+  const o = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 2, 1),
+    mat
+  );
+  o.position.set(
+    (Math.random() - 0.5) * 6,
+    1,
+    -30 - i * 25
+  );
+  scene.add(o);
+  obstacles.push(o);
+}
+
+/* ===== 카메라 ===== */
+camera.position.set(0, 4, 8);
+camera.lookAt(player.position);
+
+/* ===== 물리 변수 ===== */
+let velocityY = 0;
+let isJumping = false;
+const gravity = -0.03;
+const jumpPower = 0.7;
+
+/* ===== 터치 입력 ===== */
+let touchStartX = 0;
+let touchStartY = 0;
+let touchMoved = false;
+
+window.addEventListener("touchstart", e => {
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  touchMoved = false;
+});
+
+window.addEventListener("touchmove", e => {
+  const t = e.touches[0];
+  const dx = t.clientX - touchStartX;
+
+  if (Math.abs(dx) > 15) {
+    touchMoved = true;
+    player.position.x += dx * 0.002;
+    player.position.x = Math.max(-4, Math.min(4, player.position.x));
+    touchStartX = t.clientX;
+  }
+});
+
+window.addEventListener("touchend", () => {
+  if (!touchMoved && !isJumping) {
+    velocityY = jumpPower;
+    isJumping = true;
+  }
+});
+
+/* ===== 애니메이션 루프 ===== */
+function animate() {
+  requestAnimationFrame(animate);
+
+  /* 점프 물리 */
+  velocityY += gravity;
+  player.position.y += velocityY;
+
+  if (player.position.y <= 1) {
+    player.position.y = 1;
+    velocityY = 0;
+    isJumping = false;
+  }
+
+  /* 장애물 이동 */
+  obstacles.forEach(o => {
+    o.position.z += 0.6;
+    if (o.position.z > 10) {
+      o.position.z = -300;
+      o.position.x = (Math.random() - 0.5) * 6;
+    }
+  });
+
+  /* 카메라 추적 */
+  camera.position.x += (player.position.x - camera.position.x) * 0.1;
+  camera.position.z = player.position.z + 8;
+  camera.lookAt(player.position);
+
+  renderer.render(scene, camera);
+}
+animate();
+
+/* ===== 리사이즈 ===== */
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
