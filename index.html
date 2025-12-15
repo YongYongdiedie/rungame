@@ -111,7 +111,7 @@ window.addEventListener("touchmove", e => {
   if (Math.abs(dx) > 10) {
     touchMoved = true;
     /* ✅ 민감도 30% 증가 */
-    player.position.x += dx * 0.0026;
+    player.position.x += dx * 0.005;
     player.position.x = Math.max(-4, Math.min(4, player.position.x));
     touchStartX = t.clientX;
   }
